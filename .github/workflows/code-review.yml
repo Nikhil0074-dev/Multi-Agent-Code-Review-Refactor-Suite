@@ -1,0 +1,55 @@
+name: Multi-Agent Code Review
+
+# Job 1 of 2. Read-only. Runs the review and uploads report.json / report.md.
+# Posting to the pull request happens in publish-review.yml (separate, trusted job).
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  review:
+    # Fork PRs never get secrets, and must not be able to run code that could read them.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4   # TODO: pin to a reviewed commit SHA
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5   # TODO: pin to a reviewed commit SHA
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run review pipeline
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          LLM_BACKEND: ${{ vars.LLM_BACKEND || 'hosted' }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          REVIEW_MODE: ${{ vars.REVIEW_MODE || 'debate' }}
+          REPORT_DIR: review-output
+        run: python -m app.review
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4   # TODO: pin to a reviewed commit SHA
+        with:
+          name: review-report
+          path: review-output/
+          if-no-files-found: ignore
