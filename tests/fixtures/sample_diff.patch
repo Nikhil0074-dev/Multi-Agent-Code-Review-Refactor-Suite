@@ -1,0 +1,42 @@
+diff --git a/app/users.py b/app/users.py
+--- a/app/users.py
++++ b/app/users.py
+@@ -7,6 +7,13 @@
+     return cur.fetchone()
+ 
+ 
++def find_by_email(conn, email):
++    cur = conn.cursor()
++    query = f"SELECT * FROM users WHERE email = '{email}'"
++    cur.execute(query)
++    return cur.fetchall()
++
++
+ def count_users(conn):
+     cur = conn.cursor()
+     cur.execute("SELECT COUNT(*) FROM users")
+diff --git a/app/orders.py b/app/orders.py
+--- a/app/orders.py
++++ b/app/orders.py
+@@ -2,3 +2,12 @@
+     cur = conn.cursor()
+     cur.execute("SELECT SUM(amount) FROM orders WHERE user_id = ?", (user_id,))
+     return cur.fetchone()[0] or 0
++
++
++def totals(conn, users):
++    result = {}
++    for user in users:
++        cur = conn.cursor()
++        cur.execute("SELECT SUM(amount) FROM orders WHERE user_id = ?", (user.id,))
++        result[user.id] = cur.fetchone()[0] or 0
++    return result
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,5 @@
+ # Demo
+ 
+ A small demo project.
++
++See docs for usage.
