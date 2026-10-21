@@ -1,0 +1,48 @@
+name: Publish Code Review
+
+# Job 2 of 2. Has write access, but never checks out or runs pull request code.
+# It only reads report.json, re-checks the PR head commit through the API, and posts.
+
+on:
+  workflow_run:
+    workflows: ["Multi-Agent Code Review"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out default branch (trusted code only)
+        uses: actions/checkout@v4   # TODO: pin to a reviewed commit SHA
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5   # TODO: pin to a reviewed commit SHA
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download report
+        uses: actions/download-artifact@v4   # TODO: pin to a reviewed commit SHA
+        with:
+          name: review-report
+          path: review-output
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          REPORT_PATH: review-output/report.json
+          ENABLE_INLINE_COMMENTS: ${{ vars.ENABLE_INLINE_COMMENTS || 'false' }}
+        run: python -m app.publish
