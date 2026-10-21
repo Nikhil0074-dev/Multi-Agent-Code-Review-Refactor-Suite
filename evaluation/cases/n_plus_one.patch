@@ -1,0 +1,16 @@
+diff --git a/app/orders.py b/app/orders.py
+--- a/app/orders.py
++++ b/app/orders.py
+@@ -2,3 +2,12 @@
+     cur = conn.cursor()
+     cur.execute("SELECT SUM(amount) FROM orders WHERE user_id = ?", (user_id,))
+     return cur.fetchone()[0] or 0
++
++
++def totals(conn, users):
++    result = {}
++    for user in users:
++        cur = conn.cursor()
++        cur.execute("SELECT SUM(amount) FROM orders WHERE user_id = ?", (user.id,))
++        result[user.id] = cur.fetchone()[0] or 0
++    return result

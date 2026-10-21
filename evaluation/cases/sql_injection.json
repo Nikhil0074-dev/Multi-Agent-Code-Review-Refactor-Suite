@@ -1,0 +1,1 @@
+{"id": "sql_injection", "diff_file": "sql_injection.patch", "expected": [{"file_path": "app/users.py", "start_line": 12, "end_line": 12}]}

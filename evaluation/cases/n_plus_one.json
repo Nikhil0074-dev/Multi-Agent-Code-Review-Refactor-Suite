@@ -1,0 +1,1 @@
+{"id": "n_plus_one", "diff_file": "n_plus_one.patch", "expected": [{"file_path": "app/orders.py", "start_line": 11, "end_line": 11}]}
